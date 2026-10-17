@@ -1,4 +1,4 @@
-from src.transform import standardise_record, validate_record, deduplicate_events
+from src.transform import deduplicate_events, standardise_record, validate_record
 
 
 def test_standardise_record():
