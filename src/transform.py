@@ -37,3 +37,25 @@ def validate_record(record):
         return False
     
     return True
+
+
+def deduplicate_events(records):
+    seen_event_ids = set()
+    unique_records = []
+
+    for record in records:
+        event_id = record.get("event_id")
+        
+        if not event_id:
+            continue
+
+        event_id = event_id.strip()
+
+        if not event_id:
+            continue
+
+        if event_id not in seen_event_ids:
+            seen_event_ids.add(event_id)
+            unique_records.append(record)
+
+    return unique_records

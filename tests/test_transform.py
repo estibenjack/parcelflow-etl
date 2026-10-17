@@ -1,4 +1,4 @@
-from src.transform import standardise_record, validate_record
+from src.transform import standardise_record, validate_record, deduplicate_events
 
 
 def test_standardise_record():
@@ -171,3 +171,56 @@ def test_validate_record_missing_status_key():
     }
 
     assert validate_record(record) is False
+
+
+def test_deduplicate_events():
+    records = [
+        {"event_id": "EV001", "shipment_id": "PF001"},
+        {"event_id": "EV002", "shipment_id": "PF001"},
+        {"event_id": "EV001", "shipment_id": "PF001"},
+        {"event_id": "EV003", "shipment_id": "PF002"}
+    ]
+
+    result = deduplicate_events(records)
+
+    assert len(result) == 3
+    assert result[0]["event_id"] == "EV001"
+    assert result[1]["event_id"] == "EV002"
+    assert result[2]["event_id"] == "EV003"
+
+
+def test_deduplicate_events_excludes_missing_event_ids():
+    records = [
+        {"event_id": "EV001", "shipment_id": "PF001"},
+        {"event_id": "", "shipment_id": "PF002"},
+        {"shipment_id": "PF003"}
+    ]
+
+    result = deduplicate_events(records)
+
+    assert len(result) == 1
+    assert result[0]["event_id"] == "EV001"
+
+
+def test_deduplicate_events_excludes_whitespace_only_event_ids():
+    records = [
+        {"event_id": "EV001", "shipment_id": "PF001"},
+        {"event_id": "   ", "shipment_id": "PF004"}
+    ]
+
+    result = deduplicate_events(records)
+
+    assert len(result) == 1
+    assert result[0]["event_id"] == "EV001"
+
+
+def test_deduplicate_events_handles_event_id_whitespace():
+    records = [
+        {"event_id": "  EV001 ", "shipment_id": "PF001"},
+        {"event_id": "EV001", "shipment_id": "PF001"}
+    ]
+
+    result = deduplicate_events(records)
+
+    assert len(result) == 1
+    assert result[0]["event_id"] == "  EV001 "
