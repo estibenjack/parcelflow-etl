@@ -181,12 +181,13 @@ def test_deduplicate_events():
         {"event_id": "EV003", "shipment_id": "PF002"}
     ]
 
-    result = deduplicate_events(records)
+    unique_records, conflicting_records = deduplicate_events(records)
 
-    assert len(result) == 3
-    assert result[0]["event_id"] == "EV001"
-    assert result[1]["event_id"] == "EV002"
-    assert result[2]["event_id"] == "EV003"
+    assert len(unique_records) == 3
+    assert len(conflicting_records) == 0
+    assert unique_records[0]["event_id"] == "EV001"
+    assert unique_records[1]["event_id"] == "EV002"
+    assert unique_records[2]["event_id"] == "EV003"
 
 
 def test_deduplicate_events_excludes_missing_event_ids():
@@ -196,10 +197,11 @@ def test_deduplicate_events_excludes_missing_event_ids():
         {"shipment_id": "PF003"}
     ]
 
-    result = deduplicate_events(records)
+    unique_records, conflicting_records = deduplicate_events(records)
 
-    assert len(result) == 1
-    assert result[0]["event_id"] == "EV001"
+    assert len(unique_records) == 1
+    assert unique_records[0]["event_id"] == "EV001"
+    assert conflicting_records == []
 
 
 def test_deduplicate_events_excludes_whitespace_only_event_ids():
@@ -208,10 +210,11 @@ def test_deduplicate_events_excludes_whitespace_only_event_ids():
         {"event_id": "   ", "shipment_id": "PF004"}
     ]
 
-    result = deduplicate_events(records)
+    unique_records, conflicting_records = deduplicate_events(records)
 
-    assert len(result) == 1
-    assert result[0]["event_id"] == "EV001"
+    assert len(unique_records) == 1
+    assert unique_records[0]["event_id"] == "EV001"
+    assert conflicting_records == []
 
 
 def test_deduplicate_events_handles_event_id_whitespace():
@@ -220,7 +223,23 @@ def test_deduplicate_events_handles_event_id_whitespace():
         {"event_id": "EV001", "shipment_id": "PF001"}
     ]
 
-    result = deduplicate_events(records)
+    unique_records, conflicting_records = deduplicate_events(records)
 
-    assert len(result) == 1
-    assert result[0]["event_id"] == "  EV001 "
+    assert len(unique_records) == 1
+    assert unique_records[0]["event_id"] == "  EV001 "
+    assert conflicting_records == []
+
+
+def test_deduplicate_events_detects_conflicting_records():
+    records = [
+        {"event_id": "  EV001 ", "event_status": "DISPATCHED"},
+        {"event_id": "EV001", "event_status": "IN_TRANSIT"}
+    ]
+
+    unique_records, conflicting_records = deduplicate_events(records)
+
+    assert len(unique_records) == 1
+    assert len(conflicting_records) == 1
+    assert unique_records[0]["event_status"] == "DISPATCHED"
+    assert conflicting_records[0]["event_status"] == "IN_TRANSIT"
+

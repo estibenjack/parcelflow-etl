@@ -10,7 +10,6 @@ VALID_STATUSES = {
 }
 
 def standardise_record(record):
-
     cleaned_rec = record.copy()
 
     cleaned_rec['origin_depot'] = cleaned_rec['origin_depot'].strip().title()
@@ -40,8 +39,9 @@ def validate_record(record):
 
 
 def deduplicate_events(records):
-    seen_event_ids = set()
+    seen_events = {}
     unique_records = []
+    conflicting_records = []
 
     for record in records:
         event_id = record.get("event_id")
@@ -54,8 +54,13 @@ def deduplicate_events(records):
         if not event_id:
             continue
 
-        if event_id not in seen_event_ids:
-            seen_event_ids.add(event_id)
-            unique_records.append(record)
+        cleaned_rec = record.copy()
+        cleaned_rec["event_id"] = event_id
 
-    return unique_records
+        if event_id not in seen_events:
+            seen_events[event_id] = cleaned_rec
+            unique_records.append(record)
+        elif seen_events[event_id] != cleaned_rec:
+            conflicting_records.append(record)
+
+    return unique_records, conflicting_records
