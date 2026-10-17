@@ -1,3 +1,14 @@
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+
+
+VALID_STATUSES = {
+    "DISPATCHED",
+    "IN_TRANSIT",
+    "OUT_FOR_DELIVERY",
+    "DELIVERED"
+}
+
 def standardise_record(record):
 
     cleaned_rec = record.copy()
@@ -9,12 +20,20 @@ def standardise_record(record):
     return cleaned_rec
 
 
-sample = {
-    "origin_depot": " bELFAST ",
-    "destination_city": " manchester ",
-    "event_status": "in_transit"
-}
+def validate_record(record):
+    try:
+        datetime.strptime(record["event_timestamp"], "%Y-%m-%d %H:%M:%S")
+    except (ValueError, TypeError, KeyError):
+        return False
 
-result = standardise_record(sample)
+    try:
+        weight = Decimal(record["parcel_weight_kg"])
+        if not weight.is_finite() or weight <= 0:
+            return False
+    except (InvalidOperation, TypeError, KeyError):
+        return False
 
-print(result)
+    if record.get("event_status") not in VALID_STATUSES:
+        return False
+    
+    return True
